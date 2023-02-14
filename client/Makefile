@@ -1,3 +1,9 @@
+build:
+	go build -o ./out/client client.go
+
 run:
-	go test ./
+	go run client.go
+
+clean:
+	rm -rf ./out
 
