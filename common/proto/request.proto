@@ -1,0 +1,22 @@
+message GetReq {
+  required  string key = 1;
+
+}
+message GetRsp {
+  required string val = 1;
+  required TimeStamp ts = 2;
+}
+
+message putReq {
+  required  string key = 1;
+  required  string value = 2;
+  required TimeStamp ts = 3;
+}
+
+message putRsp {
+}
+
+message TimeStamp {
+    required uint64 requestNumber = 1;
+    required string clientID = 2;
+}
