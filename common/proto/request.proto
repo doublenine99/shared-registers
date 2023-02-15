@@ -1,21 +1,29 @@
 syntax = "proto3";
 
-message GetReq {
+option go_package = "../common/proto";
+
+
+service SharedRegisters {
+  rpc GetPhase (GetPhaseReq) returns (GetPhaseRsp) {}
+  rpc SetPhase (SetPhaseReq) returns (SetPhaseRsp) {}
+}
+
+message GetPhaseReq {
   string key = 1;
 
 }
-message GetRsp {
+message GetPhaseRsp {
   string val = 1;
   TimeStamp ts = 2;
 }
 
-message putReq {
+message SetPhaseReq {
   string key = 1;
   string value = 2;
   TimeStamp ts = 3;
 }
 
-message putRsp {
+message SetPhaseRsp {
 }
 
 message TimeStamp {
