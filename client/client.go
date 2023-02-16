@@ -10,6 +10,7 @@ import (
 	"os"
 	"shared-registers/common/proto"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
@@ -189,6 +190,69 @@ func execRead(key string) string {
 	value, ts := readGetPhase(key)
 	readSetPhase(key, value, ts)
 	return value
+}
+
+func execBatchOperations(fileName, resultFilename string) {
+	file, err := os.Open(fileName)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	defer file.Close()
+
+	resulFile, err := os.Create(resultFilename)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	defer resulFile.Close()
+	// Create a writer
+	resultWriter := bufio.NewWriter(resulFile)
+
+	scanner := bufio.NewScanner(file)
+	// for each operation in the batch file
+	for scanner.Scan() {
+		operationFileds := strings.Fields(scanner.Text())
+		var result = ""
+		switch len(operationFileds) {
+		case 2:
+			if strings.EqualFold(operationFileds[0], "GET") {
+				key := operationFileds[1]
+				resultValue := execRead(key)
+				result = "READ\tKey=" + key + "\tValue=" + resultValue
+			} else {
+				fmt.Println(err)
+				os.Exit(1)
+			}
+		case 3:
+			if strings.EqualFold(operationFileds[0], "SET") {
+				key, value := operationFileds[1], operationFileds[2]
+				execWrite(key, value)
+				result = "WRITE\tKey=" + key + "\tValue=" + value
+			} else {
+				fmt.Println(err)
+				os.Exit(1)
+			}
+		default:
+			{
+				fmt.Println(err)
+				os.Exit(1)
+			}
+		}
+
+		// write result into file
+		_, err := resultWriter.WriteString(result + "\n")
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+
+		if err := scanner.Err(); err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+	}
+	resultWriter.Flush()
 }
 
 func main() {
