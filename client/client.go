@@ -123,7 +123,7 @@ func completeGetPhase(key string) (string, uint64, string) {
 	wg.Add(len(replicaConns)/2 + 1) // wait for the responses from a majority
 	for _, conn := range replicaConns {
 		go func() {
-			resp, err := GetPhase(&proto.GetPhaseReq{Key: key}, conn)
+			resp, _ := GetPhase(&proto.GetPhaseReq{Key: key}, conn)
 			if resp != nil {
 				mutex.Lock()
 				if resp.Ts != nil {
@@ -131,8 +131,6 @@ func completeGetPhase(key string) (string, uint64, string) {
 				}
 				mutex.Unlock()
 				wg.Done()
-			} else {
-				log.Printf("replica GET failed: %v", err)
 			}
 		}()
 	}
@@ -165,8 +163,6 @@ func completeSetPhase(key, value string, timestamp *proto.TimeStamp) {
 			if err != nil {
 				// successfully got a response form a replica
 				wg.Done()
-			} else {
-				log.Printf("replica SET failed: %v", err)
 			}
 		}()
 	}
@@ -210,32 +206,37 @@ func execBatchOperations(fileName, resultFilename string) {
 	resultWriter := bufio.NewWriter(resulFile)
 
 	scanner := bufio.NewScanner(file)
+	lineNumber := 0
 	// for each operation in the batch file
 	for scanner.Scan() {
-		operationFileds := strings.Fields(scanner.Text())
+		inputLine := scanner.Text()
+		operationFileds := strings.Fields(inputLine)
 		var result = ""
 		switch len(operationFileds) {
 		case 2:
-			if strings.EqualFold(operationFileds[0], "GET") {
+			if strings.EqualFold(operationFileds[0], "R") {
 				key := operationFileds[1]
 				resultValue := execRead(key)
 				result = "READ\tKey=" + key + "\tValue=" + resultValue
 			} else {
-				fmt.Println(err)
+				fmt.Printf("Error when parsing line %d\n", lineNumber)
+				fmt.Println(inputLine)
 				os.Exit(1)
 			}
 		case 3:
-			if strings.EqualFold(operationFileds[0], "SET") {
+			if strings.EqualFold(operationFileds[0], "W") {
 				key, value := operationFileds[1], operationFileds[2]
 				execWrite(key, value)
 				result = "WRITE\tKey=" + key + "\tValue=" + value
 			} else {
-				fmt.Println(err)
+				fmt.Printf("Error when parsing line %d\n", lineNumber)
+				fmt.Println(inputLine)
 				os.Exit(1)
 			}
 		default:
 			{
-				fmt.Println(err)
+				fmt.Printf("Error when parsing line %d\n", lineNumber)
+				fmt.Println(inputLine)
 				os.Exit(1)
 			}
 		}
@@ -251,10 +252,50 @@ func execBatchOperations(fileName, resultFilename string) {
 			fmt.Println(err)
 			os.Exit(1)
 		}
+		lineNumber++
 	}
 	resultWriter.Flush()
 }
 
 func main() {
+	fmt.Println("Usage:")
+	fmt.Println("R [key]")
+	fmt.Println("W [key] [value]")
+	fmt.Println("EXEC [filepath] [resultFilepath]")
 
+	// read commands from the console
+	scanner := bufio.NewScanner(os.Stdin)
+	for scanner.Scan() {
+		operationFileds := strings.Fields(scanner.Text())
+		var result = ""
+		switch len(operationFileds) {
+		case 2:
+			if strings.EqualFold(operationFileds[0], "R") {
+				key := operationFileds[1]
+				resultValue := execRead(key)
+				result = "READ\tKey=" + key + "\tValue=" + resultValue
+			} else {
+				fmt.Println("Invalid Operation!")
+			}
+		case 3:
+			if strings.EqualFold(operationFileds[0], "W") {
+				key, value := operationFileds[1], operationFileds[2]
+				execWrite(key, value)
+				result = "WRITE\tKey=" + key + "\tValue=" + value
+			} else if strings.EqualFold(operationFileds[0], "EXEC") {
+				execBatchOperations(operationFileds[1], operationFileds[2])
+			} else {
+				fmt.Println("Invalid Operation!")
+			}
+		default:
+			{
+				fmt.Println("Invalid Operation!")
+			}
+		}
+		fmt.Println(result)
+	}
+
+	if scanner.Err() != nil {
+		// Handle error.
+	}
 }
