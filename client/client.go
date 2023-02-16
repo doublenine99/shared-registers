@@ -119,8 +119,8 @@ func completeGetPhase(key string) (string, uint64, string) {
 	curVal := ""
 	var curMaxTs uint64 = 0
 	var curClientId string = ""
+	wg.Add(len(replicaConns)/2 + 1) // wait for the responses from a majority
 	for _, conn := range replicaConns {
-		wg.Add(1)
 		go func() {
 			resp, err := GetPhase(&proto.GetPhaseReq{Key: key}, conn)
 			if resp != nil {
@@ -131,7 +131,7 @@ func completeGetPhase(key string) (string, uint64, string) {
 				mutex.Unlock()
 				wg.Done()
 			} else {
-				log.Printf("replica get failed: %v", err)
+				log.Printf("replica GET failed: %v", err)
 			}
 		}()
 	}
@@ -139,10 +139,10 @@ func completeGetPhase(key string) (string, uint64, string) {
 	return curVal, curMaxTs, curClientId
 }
 
-func writeGetPhase(key string) (string, *proto.TimeStamp) {
-	curVal, curMaxTs, _ := completeGetPhase(key)
+func writeGetPhase(key string) *proto.TimeStamp {
+	_, curMaxTs, _ := completeGetPhase(key)
 	var ts = &proto.TimeStamp{ClientID: myClientId, RequestNumber: curMaxTs + 1}
-	return curVal, ts
+	return ts
 }
 
 func readGetPhase(key string) (string, *proto.TimeStamp) {
@@ -155,15 +155,42 @@ func readGetPhase(key string) (string, *proto.TimeStamp) {
 	}
 }
 
-func doWrite(key string, val string) {
-	//val, ts := writeGetPhase(key)
-	//TODO: implement set phase
-	//_ = SetPhase(&proto.SetPhaseReq{
-	//	Key:   key,
-	//	Value: val,
-	//	Ts:    ts,
-	//})
+func completeSetPhase(key, value string, timestamp *proto.TimeStamp) {
+	var wg sync.WaitGroup
+	wg.Add(len(replicaConns)/2 + 1) // wait for the responses from a majority
+	for _, conn := range replicaConns {
+		go func() {
+			err := SetPhase(&proto.SetPhaseReq{Key: key, Value: value, Ts: timestamp}, conn)
+			if err != nil {
+				// successfully got a response form a replica
+				wg.Done()
+			} else {
+				log.Printf("replica SET failed: %v", err)
+			}
+		}()
+	}
+	wg.Wait()
 }
+
+func writeSetPhase(key, value string, timestamp *proto.TimeStamp) {
+	completeSetPhase(key, value, timestamp)
+}
+
+func readSetPhase(key, value string, timestamp *proto.TimeStamp) {
+	completeSetPhase(key, value, timestamp)
+}
+
+func execWrite(key string, value string) {
+	ts := writeGetPhase(key)
+	writeSetPhase(key, value, ts)
+}
+
+func execRead(key string) string {
+	value, ts := readGetPhase(key)
+	readSetPhase(key, value, ts)
+	return value
+}
+
 func main() {
 
 }
