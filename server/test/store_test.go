@@ -2,6 +2,7 @@ package test
 
 import (
 	"math/rand"
+	"shared-registers/common/proto"
 	"shared-registers/server/store"
 	"strconv"
 	"testing"
@@ -15,7 +16,8 @@ func TestConcurrentSet(t *testing.T) {
 		go func(i int) {
 			idx := rand.Intn(n / collideChance)
 			s := strconv.Itoa(idx)
-			store.Set(s, s)
+			var empty *proto.TimeStamp
+			store.Set(s, s, empty)
 		}(i)
 	}
 }
@@ -28,14 +30,19 @@ func TestSet(t *testing.T) {
 		idx := rand.Intn(n / collideChance)
 		s := strconv.Itoa(idx)
 		values[idx] = s
-		store.Set(s, s)
+		var empty *proto.TimeStamp
+		store.Set(s, s, empty)
 	}
 	for i, v := range values {
 		if v != "" {
-			val, ok := store.Get(strconv.Itoa(i))
+			val, _, ok := store.Get(strconv.Itoa(i))
 			if !ok || v != val {
 				t.Errorf("value not match for key %d, %s %s", i, v, val)
 			}
 		}
 	}
+}
+
+func TestServiceHandler(t *testing.T) {
+	// TODO: test that series of sets and gets gives correct output
 }
