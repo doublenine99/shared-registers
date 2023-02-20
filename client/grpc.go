@@ -14,10 +14,10 @@ type grpcClient struct {
 	requestTimeOut time.Duration
 }
 
-func SetPhase(req *proto.SetPhaseReq, client *grpcClient) error {
-	ctx, cancel := context.WithTimeout(context.Background(), client.requestTimeOut)
+func (g *grpcClient) SetPhase(req *proto.SetPhaseReq) error {
+	ctx, cancel := context.WithTimeout(context.Background(), g.requestTimeOut)
 	defer cancel()
-	_, err := client.c.SetPhase(ctx, req)
+	_, err := g.c.SetPhase(ctx, req)
 	if err != nil {
 		log.Printf("SetPhase failed: %v", err)
 		return err
@@ -26,10 +26,10 @@ func SetPhase(req *proto.SetPhaseReq, client *grpcClient) error {
 	return nil
 }
 
-func GetPhase(req *proto.GetPhaseReq, client *grpcClient) (*proto.GetPhaseRsp, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), client.requestTimeOut)
+func (g *grpcClient) GetPhase(req *proto.GetPhaseReq) (*proto.GetPhaseRsp, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), g.requestTimeOut)
 	defer cancel()
-	rsp, err := client.c.GetPhase(ctx, req)
+	rsp, err := g.c.GetPhase(ctx, req)
 	if err != nil {
 		log.Printf("GetPhase failed: %v", err)
 		return nil, err

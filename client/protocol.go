@@ -5,6 +5,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"log"
+	"shared-registers/client/util"
 	"shared-registers/common"
 	"shared-registers/common/proto"
 	"sync"
@@ -15,7 +16,8 @@ type SharedRegisterClient struct {
 	ClientID     string
 	PhaseTimeout time.Duration // the max waiting time from all the replicas each phase, default 1s
 	replicaConns []*grpcClient
-	quorumSize   int // len(replicaConns) / 2 + 1
+	quorumSize   int        // len(replicaConns) / 2 + 1
+	opsLock      sync.Mutex // each SharedRegisterClient should only execute operations sequentially
 }
 
 func CreateSharedRegisterClient(clientID string, serverAddrs []string) (*SharedRegisterClient, error) {
@@ -39,7 +41,7 @@ func CreateSharedRegisterClient(clientID string, serverAddrs []string) (*SharedR
 		s.replicaConns = append(s.replicaConns, &grpcClient{
 			conn:           conn,
 			c:              proto.NewSharedRegistersClient(conn),
-			requestTimeOut: time.Second,
+			requestTimeOut: 500 * time.Millisecond,
 		})
 	}
 
@@ -48,6 +50,9 @@ func CreateSharedRegisterClient(clientID string, serverAddrs []string) (*SharedR
 }
 
 func (s *SharedRegisterClient) Write(key string, value string) error {
+	s.opsLock.Lock()
+	defer s.opsLock.Unlock()
+
 	latestValue, err := s.completeGetPhase(key)
 	if err != nil {
 		return err
@@ -60,6 +65,9 @@ func (s *SharedRegisterClient) Write(key string, value string) error {
 }
 
 func (s *SharedRegisterClient) Read(key string) (string, error) {
+	s.opsLock.Lock()
+	defer s.opsLock.Unlock()
+
 	latestValue, err := s.completeGetPhase(key)
 	if err != nil {
 		return "", err
@@ -74,30 +82,34 @@ func (s *SharedRegisterClient) Read(key string) (string, error) {
 // client waits for a majority of responses from replicas for current <v, timestamp> pairs
 // client finds largest received timestamp, and then chooses a higher unique timestamp ts-new (max-ts,client-id)
 func (s *SharedRegisterClient) completeGetPhase(key string) (latestValue *proto.StoredValue, err error) {
-	var majorityGroup sync.WaitGroup
-	majorityGroup.Add(s.quorumSize) // wait for the responses from a majority
-
 	replicaValues := make([]*proto.StoredValue, 0)
 	replicaTimeStamps := make([]*proto.TimeStamp, 0)
 	sliceLock := sync.Mutex{}
-	// TODO: timeout if could not get majority responses
-	for _, conn := range s.replicaConns {
-		go func(conn *grpcClient) {
-			resp, _ := GetPhase(&proto.GetPhaseReq{Key: key}, conn)
-			if resp != nil {
-				if resp.GetValue() != nil {
-					sliceLock.Lock()
-					replicaValues = append(replicaValues, resp.GetValue())
-					replicaTimeStamps = append(replicaTimeStamps, resp.GetValue().GetTs())
-					sliceLock.Unlock()
-				}
-				majorityGroup.Done()
-			}
-		}(conn)
-	}
-	// wait until majority or timeout
-	majorityGroup.Wait()
 
+	requests := make([]func() bool, 0)
+	for _, conn := range s.replicaConns {
+		conn := conn
+		getFromReplica := func() bool {
+			resp, err := conn.GetPhase(&proto.GetPhaseReq{Key: key})
+			if err != nil {
+				log.Println(err)
+				return false
+			}
+			if resp != nil && resp.GetValue() != nil {
+				sliceLock.Lock()
+				replicaValues = append(replicaValues, resp.GetValue())
+				replicaTimeStamps = append(replicaTimeStamps, resp.GetValue().GetTs())
+				sliceLock.Unlock()
+			}
+			return true
+		}
+		requests = append(requests, getFromReplica)
+	}
+
+	timedOut := util.WaitForMajoritySuccessFromJobs(s.quorumSize, s.PhaseTimeout, requests)
+	if timedOut {
+		return nil, errors.New("completeGetPhase timeout")
+	}
 	largestTs := common.FindLargestTimeStamp(replicaTimeStamps...)
 	for _, v := range replicaValues {
 		if v.GetTs() == largestTs {
@@ -113,23 +125,27 @@ func (s *SharedRegisterClient) completeGetPhase(key string) (latestValue *proto.
 // In either case, the storage nodes sends an acknowledgement to the client.
 // client then waits for a majority of acknowledgements
 func (s *SharedRegisterClient) completeSetPhase(key, value string, timestamp *proto.TimeStamp) error {
-	var wg sync.WaitGroup
-	// TODO: timeout
-	wg.Add(s.quorumSize) // wait for the responses from a majority
+	requests := make([]func() bool, 0)
 	for _, conn := range s.replicaConns {
-		go func(conn *grpcClient) {
-			err := SetPhase(&proto.SetPhaseReq{
+		conn := conn
+		setToReplica := func() bool {
+			err := conn.SetPhase(&proto.SetPhaseReq{
 				Key: key,
 				Value: &proto.StoredValue{
 					Val: value,
 					Ts:  timestamp,
-				}}, conn)
-			if err == nil {
-				// successfully got a response form a replica
-				wg.Done()
+				}})
+			if err != nil {
+				log.Println(err)
+				return false
 			}
-		}(conn)
+			return true
+		}
+		requests = append(requests, setToReplica)
 	}
-	wg.Wait()
+	timedOut := util.WaitForMajoritySuccessFromJobs(s.quorumSize, s.PhaseTimeout, requests)
+	if timedOut {
+		return errors.New("completeGetPhase timeout")
+	}
 	return nil
 }
