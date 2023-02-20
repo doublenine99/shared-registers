@@ -61,6 +61,9 @@ func (s *SharedRegisterClient) Write(key string, value string) error {
 
 func (s *SharedRegisterClient) Read(key string) (string, error) {
 	latestValue, err := s.completeGetPhase(key)
+	if latestValue == nil {
+		return "", errors.New("key " + key + " doesn't exist")
+	}
 	if err != nil {
 		return "", err
 	}
