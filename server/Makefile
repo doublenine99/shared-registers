@@ -1,8 +1,8 @@
 build:
-	go build -o ./out/replica main.go
+	go build -o ./out/replica ./
 
 run:
-	go run main.go
+	./out/replica
 
 clean:
 	rm -rf ./out

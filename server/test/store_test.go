@@ -16,8 +16,13 @@ func TestConcurrentSet(t *testing.T) {
 		go func(i int) {
 			idx := rand.Intn(n / collideChance)
 			s := strconv.Itoa(idx)
-			var empty *proto.TimeStamp
-			store.Set(s, s, empty)
+			store.Set(s, &proto.StoredValue{
+				Val: s,
+				Ts: &proto.TimeStamp{
+					ClientID:      "cid",
+					RequestNumber: uint64(i),
+				},
+			})
 		}(i)
 	}
 }
@@ -30,13 +35,19 @@ func TestSet(t *testing.T) {
 		idx := rand.Intn(n / collideChance)
 		s := strconv.Itoa(idx)
 		values[idx] = s
-		var empty *proto.TimeStamp
-		store.Set(s, s, empty)
+
+		store.Set(s, &proto.StoredValue{
+			Val: s,
+			Ts: &proto.TimeStamp{
+				ClientID:      "cid",
+				RequestNumber: uint64(i),
+			},
+		})
 	}
 	for i, v := range values {
 		if v != "" {
-			val, _, ok := store.Get(strconv.Itoa(i))
-			if !ok || v != val {
+			val, err := store.Get(strconv.Itoa(i))
+			if err != nil || v != val.GetVal() {
 				t.Errorf("value not match for key %d, %s %s", i, v, val)
 			}
 		}

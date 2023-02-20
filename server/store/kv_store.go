@@ -18,4 +18,5 @@ func Get(key string) (*proto.StoredValue, error) {
 
 func Set(key string, value *proto.StoredValue) {
 	s.Store(key, value)
+	//log.Printf("Stored %s %v\n", key, value)
 }
