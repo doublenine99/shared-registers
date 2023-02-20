@@ -112,5 +112,6 @@ google.golang.org/protobuf/types/known/durationpb
 google.golang.org/protobuf/types/known/timestamppb
 # shared-registers/common v1.0.0 => ../../shared-registers/common
 ## explicit; go 1.19
+shared-registers/common
 shared-registers/common/proto
 # shared-registers/common => ../../shared-registers/common

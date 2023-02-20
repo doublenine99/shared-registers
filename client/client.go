@@ -91,7 +91,7 @@ func GetPhase(req *proto.GetPhaseReq, client *grpcClient) (*proto.GetPhaseRsp, e
 	return rsp, nil
 }
 
-func compareTs(curMaxTs *uint64, curVal *string, curClientId *string, resp *proto.GetPhaseRsp) {
+func compareTs(curMaxTs *uint64, curVal *string, curClientId *string, resp *proto.StoredValue) {
 	val := resp.Val
 	logicalTs := resp.Ts.RequestNumber
 	clientId := resp.Ts.ClientID
@@ -126,8 +126,8 @@ func completeGetPhase(key string) (string, uint64, string) {
 			resp, _ := GetPhase(&proto.GetPhaseReq{Key: key}, conn)
 			if resp != nil {
 				mutex.Lock()
-				if resp.Ts != nil {
-					compareTs(&curMaxTs, &curVal, &curClientId, resp)
+				if resp.GetValue() != nil {
+					compareTs(&curMaxTs, &curVal, &curClientId, resp.GetValue())
 				}
 				mutex.Unlock()
 				wg.Done()
@@ -159,7 +159,12 @@ func completeSetPhase(key, value string, timestamp *proto.TimeStamp) {
 	wg.Add(len(replicaConns)/2 + 1) // wait for the responses from a majority
 	for _, conn := range replicaConns {
 		go func() {
-			err := SetPhase(&proto.SetPhaseReq{Key: key, Value: value, Ts: timestamp}, conn)
+			err := SetPhase(&proto.SetPhaseReq{
+				Key: key,
+				Value: &proto.StoredValue{
+					Val: value,
+					Ts:  timestamp,
+				}}, conn)
 			if err != nil {
 				// successfully got a response form a replica
 				wg.Done()

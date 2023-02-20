@@ -12,15 +12,19 @@ message GetPhaseReq {
   string key = 1;
 
 }
+
 message GetPhaseRsp {
+  StoredValue value = 1;
+}
+
+message StoredValue {
   string val = 1;
   TimeStamp ts = 2;
 }
 
 message SetPhaseReq {
   string key = 1;
-  string value = 2;
-  TimeStamp ts = 3;
+  StoredValue value = 2;
 }
 
 message SetPhaseRsp {
