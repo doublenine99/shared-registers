@@ -1,8 +1,8 @@
 build:
-	go build -o ./out/client client.go
+	go build -o ./out/client ./
 
 run:
-	go run client.go
+	./out/client
 
 clean:
 	rm -rf ./out
