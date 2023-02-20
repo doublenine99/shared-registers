@@ -18,7 +18,6 @@ import (
 var (
 	//client         *grpcClient // client instance
 	quorum       int
-	numReplicas  int
 	myClientId   string
 	mutex        sync.Mutex
 	replicaConns []*grpcClient
@@ -49,12 +48,13 @@ func init() {
 		}
 		replicaConns = append(replicaConns, client)
 	}
-
 	if err := scanner.Err(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 
+	quorum = len(replicaConns)/2 + 1
+	log.Println("q: ", quorum)
 	//addr := flag.String("addr", "localhost:50051", "the address to connect to")
 	// Set up a connection to the server.
 	//ctx, cancel := context.WithTimeout(context.Background(), time.Second)
@@ -120,9 +120,9 @@ func completeGetPhase(key string) (string, uint64, string) {
 	curVal := ""
 	var curMaxTs uint64 = 0
 	var curClientId string = ""
-	wg.Add(len(replicaConns)/2 + 1) // wait for the responses from a majority
+	wg.Add(quorum) // wait for the responses from a majority
 	for _, conn := range replicaConns {
-		go func() {
+		go func(conn *grpcClient) {
 			resp, _ := GetPhase(&proto.GetPhaseReq{Key: key}, conn)
 			if resp != nil {
 				mutex.Lock()
@@ -132,7 +132,7 @@ func completeGetPhase(key string) (string, uint64, string) {
 				mutex.Unlock()
 				wg.Done()
 			}
-		}()
+		}(conn)
 	}
 	wg.Wait()
 	return curVal, curMaxTs, curClientId
@@ -156,20 +156,20 @@ func readGetPhase(key string) (string, *proto.TimeStamp) {
 
 func completeSetPhase(key, value string, timestamp *proto.TimeStamp) {
 	var wg sync.WaitGroup
-	wg.Add(len(replicaConns)/2 + 1) // wait for the responses from a majority
+	wg.Add(quorum) // wait for the responses from a majority
 	for _, conn := range replicaConns {
-		go func() {
+		go func(conn *grpcClient) {
 			err := SetPhase(&proto.SetPhaseReq{
 				Key: key,
 				Value: &proto.StoredValue{
 					Val: value,
 					Ts:  timestamp,
 				}}, conn)
-			if err != nil {
+			if err == nil {
 				// successfully got a response form a replica
 				wg.Done()
 			}
-		}()
+		}(conn)
 	}
 	wg.Wait()
 }
@@ -184,7 +184,9 @@ func readSetPhase(key, value string, timestamp *proto.TimeStamp) {
 
 func execWrite(key string, value string) {
 	ts := writeGetPhase(key)
+	log.Printf("writeGetPhase finish")
 	writeSetPhase(key, value, ts)
+	log.Printf("log.Printf(\"writeGetPhase finish\") finish")
 }
 
 func execRead(key string) string {
