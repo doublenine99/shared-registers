@@ -69,6 +69,9 @@ func (s *SharedRegisterClient) Read(key string) (string, error) {
 	defer s.opsLock.Unlock()
 
 	latestValue, err := s.completeGetPhase(key)
+	if latestValue == nil {
+		return "", errors.New("key " + key + " doesn't exist")
+	}
 	if err != nil {
 		return "", err
 	}

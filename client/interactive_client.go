@@ -65,8 +65,12 @@ func execBatchOperations(fileName, resultFilename string) {
 		case 2:
 			if strings.EqualFold(operationFileds[0], "R") {
 				key := operationFileds[1]
-				resultValue, _ := client.Read(key)
-				result = "READ\tKey=" + key + "\tValue=" + resultValue
+				resultValue, err := client.Read(key)
+				if err != nil {
+					result = err.Error()
+				} else {
+					result = "READ\tKey=" + key + "\tValue=" + resultValue
+				}
 			} else {
 				fmt.Printf("Error when parsing line %d\n", lineNumber)
 				fmt.Println(inputLine)
@@ -125,8 +129,12 @@ func main() {
 		case 2:
 			if strings.EqualFold(operationFileds[0], "R") {
 				key := operationFileds[1]
-				resultValue, _ := client.Read(key)
-				result = "READ\tKey=" + key + "\tValue=" + resultValue
+				resultValue, err := client.Read(key)
+				if err != nil {
+					result = err.Error()
+				} else {
+					result = "READ\tKey=" + key + "\tValue=" + resultValue
+				}
 			} else {
 				fmt.Println("Invalid Operation!")
 			}
