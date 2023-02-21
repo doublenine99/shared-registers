@@ -105,13 +105,13 @@ func TestMain(m *testing.M) {
 }
 
 func TestRunClient(t *testing.T) {
-	commandNumPerClient := 10000
+	totalCommandNum := 20000
 	for numClients := 1; numClients <= 32; numClients *= 2 {
-		throughPutPerClient := testReadOnly(numClients, commandNumPerClient, t)
-		fmt.Printf("Read Only, numClient=%d, throughputPerSecondPerClient=%f\n", numClients, throughPutPerClient)
-		throughPutPerClient = testWriteOnly(numClients, commandNumPerClient, t)
-		fmt.Printf("Write Only, numClient=%d, throughputPerSecondPerClient=%f\n", numClients, throughPutPerClient)
-		throughPutPerClient = testReadAndWrite(numClients, commandNumPerClient, t)
-		fmt.Printf("Read And Write, numClient=%d, throughputPerSecondPerClient=%f\n", numClients, throughPutPerClient)
+		throughPutPerClient := testReadOnly(numClients, totalCommandNum/numClients, t)
+		fmt.Printf("Read Only\t numClient=%d\t throughputPerSecondPerClient=%f\t totalThroughput=%f\n", numClients, throughPutPerClient, float64(numClients)*throughPutPerClient)
+		throughPutPerClient = testWriteOnly(numClients, totalCommandNum/numClients, t)
+		fmt.Printf("Write Only\t numClient=%d\t throughputPerSecondPerClient=%f\t totalThroughput=%f\n", numClients, throughPutPerClient, float64(numClients)*throughPutPerClient)
+		throughPutPerClient = testReadAndWrite(numClients, totalCommandNum/numClients, t)
+		fmt.Printf("R And W\t numClient=%d\t throughputPerSecondPerClient=%f\t totalThroughput=%f\n", numClients, throughPutPerClient, float64(numClients)*throughPutPerClient)
 	}
 }
