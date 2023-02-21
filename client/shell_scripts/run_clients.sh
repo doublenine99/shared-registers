@@ -1,4 +1,5 @@
 #note: I put executable in shell script folder
+#TODO: only some output is going to the output files, why???
 for i in 1 2 3
 do
   echo "starting client $i"
