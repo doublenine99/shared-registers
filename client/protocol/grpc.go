@@ -1,4 +1,4 @@
-package main
+package protocol
 
 import (
 	"context"
@@ -22,7 +22,7 @@ func (g *grpcClient) SetPhase(req *proto.SetPhaseReq) error {
 		log.Printf("SetPhase failed: %v", err)
 		return err
 	}
-	log.Printf("SetPhase succ")
+	//log.Printf("SetPhase succ")
 	return nil
 }
 
@@ -34,6 +34,6 @@ func (g *grpcClient) GetPhase(req *proto.GetPhaseReq) (*proto.GetPhaseRsp, error
 		log.Printf("GetPhase failed: %v", err)
 		return nil, err
 	}
-	log.Printf("GetPhase succ: %s", rsp.String())
+	//log.Printf("GetPhase succ: %s", rsp.String())
 	return rsp, nil
 }

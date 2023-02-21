@@ -5,11 +5,12 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"shared-registers/client/protocol"
 	"strconv"
 	"strings"
 )
 
-var client *SharedRegisterClient
+var client *protocol.SharedRegisterClient
 
 func init() {
 	hostname, _ := os.Hostname()
@@ -31,7 +32,7 @@ func init() {
 		log.Fatal(err)
 	}
 
-	client, err = CreateSharedRegisterClient(myClientId, addrs)
+	client, err = protocol.CreateSharedRegisterClient(myClientId, addrs)
 	if err != nil {
 		log.Fatal("CreateSharedRegisterClient: ", err)
 	}
