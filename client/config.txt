@@ -1,1 +1,5 @@
-localhost:50051
+amd183.utah.cloudlab.us:50051
+amd185.utah.cloudlab.us:50051
+amd192.utah.cloudlab.us:50051
+amd200.utah.cloudlab.us:50051
+amd204.utah.cloudlab.us:50051

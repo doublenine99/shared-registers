@@ -1,0 +1,11 @@
+#!/bin/bash
+for tmp in 204 200 183 185 192
+do
+  {
+    serverName="amd${tmp}.utah.cloudlab.us"
+
+    ssh "borisli@${serverName}" "kill \`lsof -i:50051 -t\`;"
+  }&
+done
+wait
+echo "All servers are stopped now."
