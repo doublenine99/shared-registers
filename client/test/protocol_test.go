@@ -11,21 +11,19 @@ import (
 )
 
 var (
-	initNum         = 100000
 	totalCommandNum = 20000
 	maxClientNum    = 32
-	serverAddrs     []string
-)
-
-func setup() {
-	log.Println("Before all tests")
-	serverAddrs = []string{
+	serverAddrs     = []string{
 		"amd183.utah.cloudlab.us:50051",
 		"amd185.utah.cloudlab.us:50051",
 		"amd192.utah.cloudlab.us:50051",
 		"amd200.utah.cloudlab.us:50051",
 		"amd204.utah.cloudlab.us:50051",
 	} // set servers' addresses
+)
+
+func initKVStore(initNum int) {
+	log.Println("Start initKVStore")
 	setUpClient, err := protocol.CreateSharedRegisterClient("setUpClient", serverAddrs)
 	if err != nil {
 		log.Fatal(err)
@@ -43,11 +41,13 @@ func setup() {
 	log.Printf("stored %d k-v pairs\n", initNum)
 }
 
-// cd client/test
-// go test protocol_test.go -race -bench=. -benchmem -memprofile memprofile.out -cpuprofile profile.out &> out.txt
+// * detect racing and generating profile for debugging purpose
+// go test protocol_test.go -v -race -bench=. -benchmem -memprofile memprofile.out -cpuprofile profile.out &> out_prof.log
+// * run the benchmark with verbose log
+// go test protocol_test.go -v -bench=. &> out.log
 func BenchmarkRunClient(b *testing.B) {
 	go util.PrintGoroutineNum(3 * time.Second)
-	setup()
+	//initKVStore(1000000)
 	for numClients := 1; numClients <= maxClientNum; numClients *= 2 {
 		throughPutPerClient := testReadOnly(numClients, totalCommandNum/numClients, b)
 		b.Logf("Read Only\t numClient=%d\t throughputPerSecondPerClient=%f\t totalThroughput=%f\n", numClients, throughPutPerClient, float64(numClients)*throughPutPerClient)
