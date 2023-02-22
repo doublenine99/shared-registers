@@ -18,6 +18,7 @@ type SharedRegisterClient struct {
 	replicaConns []*grpcClient
 	quorumSize   int        // len(replicaConns) / 2 + 1
 	opsLock      sync.Mutex // each SharedRegisterClient should only execute operations sequentially
+	DebugMode    bool
 }
 
 func CreateSharedRegisterClient(clientID string, serverAddrs []string) (*SharedRegisterClient, error) {
@@ -44,7 +45,7 @@ func CreateSharedRegisterClient(clientID string, serverAddrs []string) (*SharedR
 			requestTimeOut: 500 * time.Millisecond,
 		})
 	}
-
+	log.Printf("connected to %d servers\n", len(s.replicaConns))
 	s.quorumSize = len(s.replicaConns)/2 + 1
 	return s, nil
 }
@@ -52,6 +53,9 @@ func CreateSharedRegisterClient(clientID string, serverAddrs []string) (*SharedR
 func (s *SharedRegisterClient) Write(key string, value string) error {
 	s.opsLock.Lock()
 	defer s.opsLock.Unlock()
+	if s.DebugMode {
+		defer util.PrintFuncExeTime("Write", time.Now())
+	}
 
 	latestValue, err := s.completeGetPhase(key)
 	if err != nil {
@@ -67,6 +71,9 @@ func (s *SharedRegisterClient) Write(key string, value string) error {
 func (s *SharedRegisterClient) Read(key string) (string, error) {
 	s.opsLock.Lock()
 	defer s.opsLock.Unlock()
+	if s.DebugMode {
+		defer util.PrintFuncExeTime("Read", time.Now())
+	}
 
 	latestValue, err := s.completeGetPhase(key)
 	if latestValue == nil {
@@ -84,42 +91,45 @@ func (s *SharedRegisterClient) Read(key string) (string, error) {
 
 // client waits for a majority of responses from replicas for current <v, timestamp> pairs
 // client finds largest received timestamp, and then chooses a higher unique timestamp ts-new (max-ts,client-id)
-func (s *SharedRegisterClient) completeGetPhase(key string) (latestValue *proto.StoredValue, err error) {
-	replicaValues := make([]*proto.StoredValue, 0)
-	replicaTimeStamps := make([]*proto.TimeStamp, 0)
-	sliceLock := sync.Mutex{}
-
+func (s *SharedRegisterClient) completeGetPhase(key string) (*proto.StoredValue, error) {
+	// use a channel with size 1 to compare and store the value with the largest TS among concurrent
+	// request goroutine to avoid data racing
+	currMaxChan := make(chan *proto.StoredValue, 1)
 	requests := make([]func() bool, 0)
+
 	for _, conn := range s.replicaConns {
 		conn := conn
 		getFromReplica := func() bool {
 			resp, err := conn.GetPhase(&proto.GetPhaseReq{Key: key})
 			if err != nil {
-				log.Println(err)
 				return false
 			}
 			if resp != nil && resp.GetValue() != nil {
-				sliceLock.Lock()
-				replicaValues = append(replicaValues, resp.GetValue())
-				replicaTimeStamps = append(replicaTimeStamps, resp.GetValue().GetTs())
-				sliceLock.Unlock()
+				// read from the channel for current largest TS and compare with the current resp
+				currLargest, open := <-currMaxChan
+				// if the channel is already closed, ignore the response from the replica
+				if !open {
+					return true
+				}
+				if resp.GetValue().GetTs() == common.FindLargestTimeStamp(currLargest.GetTs(), resp.GetValue().GetTs()) {
+					currMaxChan <- resp.GetValue()
+				} else {
+					currMaxChan <- currLargest
+				}
 			}
 			return true
 		}
 		requests = append(requests, getFromReplica)
 	}
-
+	currMaxChan <- &proto.StoredValue{Ts: &proto.TimeStamp{}}
 	timedOut := util.WaitForMajoritySuccessFromJobs(s.quorumSize, s.PhaseTimeout, requests)
 	if timedOut {
 		return nil, errors.New("completeGetPhase timeout")
 	}
-	largestTs := common.FindLargestTimeStamp(replicaTimeStamps...)
-	for _, v := range replicaValues {
-		if v.GetTs() == largestTs {
-			return v, nil
-		}
-	}
-	return nil, nil
+	largestVal := <-currMaxChan
+	// have to manually the channel to let the unfinished request goroutine detect and return
+	close(currMaxChan)
+	return largestVal, nil
 }
 
 // client asks storage nodes to store the (v, ts-new).
@@ -139,7 +149,6 @@ func (s *SharedRegisterClient) completeSetPhase(key, value string, timestamp *pr
 					Ts:  timestamp,
 				}})
 			if err != nil {
-				log.Println(err)
 				return false
 			}
 			return true
