@@ -17,7 +17,13 @@ var (
 
 func setup() {
 	fmt.Println("Before all tests")
-	serverAddrs = []string{"localhost:50051"} // set servers' addresses
+	serverAddrs = []string{
+		"amd183.utah.cloudlab.us:50051",
+		"amd185.utah.cloudlab.us:50051",
+		"amd192.utah.cloudlab.us:50051",
+		"amd200.utah.cloudlab.us:50051",
+		"amd204.utah.cloudlab.us:50051",
+	} // set servers' addresses
 	setUpClient, _ := protocol.CreateSharedRegisterClient("setUpClient", serverAddrs)
 	for i := 0; i < 100000; i++ {
 		err := setUpClient.Write("k"+strconv.Itoa(i), "v"+strconv.Itoa(i))
