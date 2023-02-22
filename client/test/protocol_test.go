@@ -70,7 +70,7 @@ func testWriteOnly(numClients int, commandsNumPerClient int, t *testing.T) (thro
 				key, value := "k"+strconv.Itoa(i), "v"+strconv.Itoa(i)
 				err := client.Write(key, value)
 				if err != nil {
-					t.Errorf("Incorrect write: key=%s", key)
+					t.Errorf("Failed write: key=%s", key)
 				}
 			}
 			wg.Done()
@@ -92,9 +92,12 @@ func testReadAndWrite(numClients int, commandsNumPerClient int, t *testing.T) (t
 				key, value := "k"+strconv.Itoa(i), "v"+strconv.Itoa(i)
 				err := client.Write(key, value)
 				if err != nil {
-					t.Errorf("Incorrect read: key=%s", key)
+					t.Errorf("Failed write: key=%s", key)
 				}
-				_, err = client.Read(key)
+				result, err := client.Read(key)
+				if err == nil && result != value {
+					t.Errorf("Incorrect read: key=%s, actualValue=%s, expectedValue=%s", key, result, value)
+				}
 			}
 			wg.Done()
 		}(clientId)

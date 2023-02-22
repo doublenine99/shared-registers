@@ -16,7 +16,7 @@ type server struct {
 // return to client with the <value, ts> associated with the key to let client decide whether which
 // replica has the updated value
 func (s *server) GetPhase(ctx context.Context, in *proto.GetPhaseReq) (*proto.GetPhaseRsp, error) {
-	log.Printf("GetPhase Received: %v", in)
+	//log.Printf("GetPhase Received: %v", in)
 	v, err := store.Get(in.GetKey())
 	if err != nil {
 		log.Printf("GetPhase err: %v", err)
@@ -30,7 +30,7 @@ func (s *server) GetPhase(ctx context.Context, in *proto.GetPhaseReq) (*proto.Ge
 // If yes, replica stores v, ts-new.
 // In either case, the storage nodes sends an acknowledgement to the client.
 func (s *server) SetPhase(ctx context.Context, in *proto.SetPhaseReq) (*proto.SetPhaseRsp, error) {
-	log.Printf("SetPhase Received: %v", in)
+	//log.Printf("SetPhase Received: %v", in)
 	newTs := in.GetValue().GetTs()
 	currValue, err := store.Get(in.GetKey())
 	if err != nil {
