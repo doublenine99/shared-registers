@@ -41,3 +41,7 @@ func TestWaitForMajoritySuccessFromJobs(t *testing.T) {
 		}
 	}
 }
+func TestPrintFuncExeTime(t *testing.T) {
+	defer util.PrintFuncExeTime("test1", time.Now())
+	time.Sleep(time.Second)
+}
