@@ -42,7 +42,7 @@ func CreateSharedRegisterClient(clientID string, serverAddrs []string) (*SharedR
 	if len(s.replicaConns) < 3 {
 		return nil, errors.New("have to connect to at least 3 replicas to continue")
 	}
-	log.Printf("connected to %d servers\n", len(s.replicaConns))
+	//log.Printf("connected to %d servers\n", len(s.replicaConns))
 	s.quorumSize = len(s.replicaConns)/2 + 1
 	return s, nil
 }
