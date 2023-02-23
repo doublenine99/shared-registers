@@ -2,8 +2,6 @@ package protocol
 
 import (
 	"errors"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 	"log"
 	"shared-registers/client/util"
 	"shared-registers/common"
@@ -34,16 +32,15 @@ func CreateSharedRegisterClient(clientID string, serverAddrs []string) (*SharedR
 		PhaseTimeout: time.Second,
 	}
 	for _, addr := range serverAddrs {
-		conn, err := grpc.Dial(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
-		if err != nil {
+		c, err := createGrpcClient(addr)
+		if err != nil || c == nil {
 			log.Printf("did not connect to %s: %v", addr, err)
 			continue
 		}
-		s.replicaConns = append(s.replicaConns, &grpcClient{
-			conn:           conn,
-			c:              proto.NewSharedRegistersClient(conn),
-			requestTimeOut: 500 * time.Millisecond,
-		})
+		s.replicaConns = append(s.replicaConns, c)
+	}
+	if len(s.replicaConns) < 3 {
+		return nil, errors.New("have to connect to at least 3 replicas to continue")
 	}
 	log.Printf("connected to %d servers\n", len(s.replicaConns))
 	s.quorumSize = len(s.replicaConns)/2 + 1

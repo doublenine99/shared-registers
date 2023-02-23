@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"log"
 	"shared-registers/client/util"
 	"shared-registers/common/proto"
@@ -17,6 +18,20 @@ type grpcClient struct {
 	requestTimeOut                                   time.Duration
 	DebugMode                                        bool
 	SetPhaseMockFail, GetPhaseMockFail, RespMockFail bool
+}
+
+func createGrpcClient(addr string) (*grpcClient, error) {
+	conn, err := grpc.Dial(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil || conn == nil {
+		log.Printf("did not connect to %s: %v", addr, err)
+		return nil, err
+	}
+
+	return &grpcClient{
+		conn:           conn,
+		c:              proto.NewSharedRegistersClient(conn),
+		requestTimeOut: 500 * time.Millisecond,
+	}, nil
 }
 
 func (g *grpcClient) SetPhase(req *proto.SetPhaseReq) error {

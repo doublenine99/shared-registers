@@ -29,9 +29,9 @@ func initKVStore(initNum int) {
 }
 
 // * detect racing and generating profile for debugging purpose
-// go benchmark pressure_test.go -v -race -bench=. -benchmem -memprofile memprofile.out -cpuprofile profile.out &> out_prof.log
+// go test -run BenchmarkRunClient -v -race -bench=. -benchmem -memprofile memprofile.out -cpuprofile profile.out &> out_prof.log
 // * run the benchmark with verbose log
-// go benchmark pressure_test.go -v -bench=. &> out.log
+// go test -run BenchmarkRunClient -v -bench=. &> out.log
 func BenchmarkRunClient(b *testing.B) {
 	_totalCommandNum := 20000
 	_testMaxClientNum := 32
