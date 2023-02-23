@@ -1,8 +1,7 @@
-package test
+package protocol
 
 import (
 	"log"
-	"shared-registers/client/protocol"
 	"shared-registers/client/util"
 	"strconv"
 	"sync"
@@ -10,21 +9,9 @@ import (
 	"time"
 )
 
-var (
-	totalCommandNum = 20000
-	maxClientNum    = 32
-	serverAddrs     = []string{
-		"amd183.utah.cloudlab.us:50051",
-		"amd185.utah.cloudlab.us:50051",
-		"amd192.utah.cloudlab.us:50051",
-		"amd200.utah.cloudlab.us:50051",
-		"amd204.utah.cloudlab.us:50051",
-	} // set servers' addresses
-)
-
 func initKVStore(initNum int) {
 	log.Println("Start initKVStore")
-	setUpClient, err := protocol.CreateSharedRegisterClient("setUpClient", serverAddrs)
+	setUpClient, err := CreateSharedRegisterClient("setUpClient", _testServiceAddrs)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -42,18 +29,20 @@ func initKVStore(initNum int) {
 }
 
 // * detect racing and generating profile for debugging purpose
-// go test protocol_test.go -v -race -bench=. -benchmem -memprofile memprofile.out -cpuprofile profile.out &> out_prof.log
+// go benchmark pressure_test.go -v -race -bench=. -benchmem -memprofile memprofile.out -cpuprofile profile.out &> out_prof.log
 // * run the benchmark with verbose log
-// go test protocol_test.go -v -bench=. &> out.log
+// go benchmark pressure_test.go -v -bench=. &> out.log
 func BenchmarkRunClient(b *testing.B) {
+	_totalCommandNum := 20000
+	_testMaxClientNum := 32
 	go util.PrintGoroutineNum(3 * time.Second)
 	//initKVStore(1000000)
-	for numClients := 1; numClients <= maxClientNum; numClients *= 2 {
-		throughPutPerClient := testReadOnly(numClients, totalCommandNum/numClients, b)
+	for numClients := 1; numClients <= _testMaxClientNum; numClients *= 2 {
+		throughPutPerClient := testReadOnly(numClients, _totalCommandNum/numClients, b)
 		b.Logf("Read Only\t numClient=%d\t throughputPerSecondPerClient=%f\t totalThroughput=%f\n", numClients, throughPutPerClient, float64(numClients)*throughPutPerClient)
-		throughPutPerClient = testWriteOnly(numClients, totalCommandNum/numClients, b)
+		throughPutPerClient = testWriteOnly(numClients, _totalCommandNum/numClients, b)
 		b.Logf("Write Only\t numClient=%d\t throughputPerSecondPerClient=%f\t totalThroughput=%f\n", numClients, throughPutPerClient, float64(numClients)*throughPutPerClient)
-		throughPutPerClient = testReadAndWrite(numClients, totalCommandNum/numClients, b)
+		throughPutPerClient = testReadAndWrite(numClients, _totalCommandNum/numClients, b)
 		b.Logf("R And W\t numClient=%d\t throughputPerSecondPerClient=%f\t totalThroughput=%f\n", numClients, throughPutPerClient, float64(numClients)*throughPutPerClient)
 	}
 }
@@ -64,7 +53,7 @@ func testReadOnly(numClients int, commandsNumPerClient int, t *testing.B) (throu
 	startTime := time.Now()
 	for clientId := 0; clientId < numClients; clientId++ {
 		go func(clientId int) {
-			client, err := protocol.CreateSharedRegisterClient("clientRead"+strconv.Itoa(clientId), serverAddrs)
+			client, err := CreateSharedRegisterClient("clientRead"+strconv.Itoa(clientId), _testServiceAddrs)
 			if err != nil {
 				log.Fatalf("CreateSharedRegisterClient err: %v %d", err, clientId)
 			}
@@ -90,7 +79,7 @@ func testWriteOnly(numClients int, commandsNumPerClient int, t *testing.B) (thro
 	startTime := time.Now()
 	for clientId := 0; clientId < numClients; clientId++ {
 		go func(clientId int) {
-			client, err := protocol.CreateSharedRegisterClient("clientWrite"+strconv.Itoa(clientId), serverAddrs)
+			client, err := CreateSharedRegisterClient("clientWrite"+strconv.Itoa(clientId), _testServiceAddrs)
 			if err != nil {
 				log.Fatalf("CreateSharedRegisterClient err: %v %d", err, clientId)
 			}
@@ -115,7 +104,7 @@ func testReadAndWrite(numClients int, commandsNumPerClient int, t *testing.B) (t
 	startTime := time.Now()
 	for clientId := 0; clientId < numClients; clientId++ {
 		go func(clientId int) {
-			client, err := protocol.CreateSharedRegisterClient("clientReadAndWrite"+strconv.Itoa(clientId), serverAddrs)
+			client, err := CreateSharedRegisterClient("clientReadAndWrite"+strconv.Itoa(clientId), _testServiceAddrs)
 			if err != nil {
 				log.Fatalf("CreateSharedRegisterClient err: %v %d", err, clientId)
 			}

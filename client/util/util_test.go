@@ -1,14 +1,13 @@
-package test
+package util
 
 import (
 	"log"
 	"runtime"
-	"shared-registers/client/util"
 	"testing"
 	"time"
 )
 
-// change the test parameter to check whether the timeout or blocking work as expected
+// change the benchmark parameter to check whether the timeout or blocking work as expected
 // have to observe the after goroutine num as well to assure no gorotine leaks
 func TestWaitForMajoritySuccessFromJobs(t *testing.T) {
 	quorum := 1
@@ -28,7 +27,7 @@ func TestWaitForMajoritySuccessFromJobs(t *testing.T) {
 		log.Println("3")
 		return false
 	})
-	util.WaitForMajoritySuccessFromJobs(quorum, time.Second, jobs)
+	WaitForMajoritySuccessFromJobs(quorum, time.Second, jobs)
 	log.Println("stop blocking: ")
 	ticker := time.NewTicker(time.Second)
 	done := make(chan bool)
@@ -42,6 +41,6 @@ func TestWaitForMajoritySuccessFromJobs(t *testing.T) {
 	}
 }
 func TestPrintFuncExeTime(t *testing.T) {
-	defer util.PrintFuncExeTime("test1", time.Now())
+	defer PrintFuncExeTime("test1", time.Now())
 	time.Sleep(time.Second)
 }
