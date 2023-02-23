@@ -50,24 +50,6 @@ func CreateSharedRegisterClient(clientID string, serverAddrs []string) (*SharedR
 	return s, nil
 }
 
-func CreateClientWithCustomizedGrpcClient(clientID string, serverConn []*grpcClient) (*SharedRegisterClient, error) {
-	// could add dedup logic in server as well
-	if clientID == "" {
-		return nil, errors.New("invalid client ID")
-	}
-	if len(serverConn) == 0 {
-		return nil, errors.New("empty server addresses")
-	}
-	s := &SharedRegisterClient{
-		ClientID:     clientID,
-		PhaseTimeout: time.Second,
-	}
-	s.replicaConns = serverConn
-	log.Printf("connected to %d servers\n", len(s.replicaConns))
-	s.quorumSize = len(s.replicaConns)/2 + 1
-	return s, nil
-}
-
 func (s *SharedRegisterClient) Write(key string, value string) error {
 	s.opsLock.Lock()
 	defer s.opsLock.Unlock()
