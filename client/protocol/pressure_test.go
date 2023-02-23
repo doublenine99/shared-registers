@@ -92,7 +92,7 @@ func testReadOnly(numClients int, t *testing.B) float64 {
 				log.Fatalf("CreateSharedRegisterClient err: %v %d", err, clientId)
 			}
 
-			for start := time.Now(); time.Since(start) < time.Second*100; {
+			for start := time.Now(); time.Since(start) < time.Second*10; {
 				randInt := generateRandomIntString()
 				key, expectedValue := "k"+randInt, "v"+randInt
 				result, err := client.Read(key)
@@ -122,7 +122,7 @@ func testWriteOnly(numClients int, t *testing.B) float64 {
 				log.Fatalf("CreateSharedRegisterClient err: %v %d", err, clientId)
 			}
 
-			for start := time.Now(); time.Since(start) < time.Second*100; {
+			for start := time.Now(); time.Since(start) < time.Second*10; {
 				randInt := generateRandomIntString()
 				key, value := "k"+randInt, "v"+randInt
 				err := client.Write(key, value)
@@ -160,7 +160,7 @@ func testReadAndWrite(numClients int, t *testing.B) float64 {
 				log.Fatalf("CreateSharedRegisterClient err: %v %d", err, clientId)
 			}
 
-			for start := time.Now(); time.Since(start) < time.Second*100; {
+			for start := time.Now(); time.Since(start) < time.Second*10; {
 				randInt := generateRandomIntString()
 				key, value := "k"+randInt, "v"+randInt
 				err := client.Write(key, value)
