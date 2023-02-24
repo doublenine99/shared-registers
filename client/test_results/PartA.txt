@@ -16,3 +16,6 @@ R And W         numClient=16    totalThroughput=15845.275053
 Read Only       numClient=32    totalThroughput=17850.611682
 Write Only      numClient=32    totalThroughput=18114.727624
 R And W         numClient=32    totalThroughput=18617.480396
+Read Only       numClient=64    totalThroughput=19280.126743
+Write Only      numClient=64    totalThroughput=19653.906498
+R And W         numClient=64    totalThroughput=19976.284277

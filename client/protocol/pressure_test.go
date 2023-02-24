@@ -71,19 +71,20 @@ func BenchmarkRunClient(b *testing.B) {
 	}
 
 	for numClients := 1; numClients <= _testMaxClientNum; numClients *= 2 {
-		throughPutPerSec := testReadOnly(numClients, b)
-		b.Logf("Read Only\t numClient=%d\t totalThroughput=%f\n", numClients, throughPutPerSec)
-		throughPutPerSec = testWriteOnly(numClients, b)
-		b.Logf("Write Only\t numClient=%d\t totalThroughput=%f\n", numClients, throughPutPerSec)
-		throughPutPerSec = testReadAndWrite(numClients, b)
-		b.Logf("R And W\t numClient=%d\t totalThroughput=%f\n", numClients, throughPutPerSec)
+		throughPutPerSec, avgLatency := testReadOnly(numClients, b)
+		b.Logf("Read Only\t numClient=%d\t totalThroughput=%f averageLatency=%f\n", numClients, throughPutPerSec, avgLatency)
+		throughPutPerSec, avgLatency = testWriteOnly(numClients, b)
+		b.Logf("Write Only\t numClient=%d\t totalThroughput=%f averageLatency=%f\n", numClients, throughPutPerSec, avgLatency)
+		throughPutPerSec, avgLatency = testReadAndWrite(numClients, b)
+		b.Logf("R And W\t numClient=%d\t totalThroughput=%f averageLatency=%f\n", numClients, throughPutPerSec, avgLatency)
 	}
 }
 
-func testReadOnly(numClients int, t *testing.B) float64 {
+func testReadOnly(numClients int, t *testing.B) (float64, float64) {
 	var wg sync.WaitGroup
 	wg.Add(numClients)
 	var totalCommandCount uint32 = 0
+	var avgLatency time.Duration = 0
 	startTime := time.Now()
 	for clientId := 1; clientId <= numClients; clientId++ {
 		go func(clientId int) {
@@ -92,26 +93,29 @@ func testReadOnly(numClients int, t *testing.B) float64 {
 				log.Fatalf("CreateSharedRegisterClient err: %v %d", err, clientId)
 			}
 
-			for start := time.Now(); time.Since(start) < time.Minute*3; {
+			for start := time.Now(); time.Since(start) < time.Second*10; {
 				randInt := generateRandomIntString()
 				key, expectedValue := "k"+randInt, "v"+randInt
 				result, err := client.Read(key)
 				if err == nil && result != expectedValue {
 					t.Errorf("Incorrect read: key=%s, actualValue=%s, expectedValue=%s", key, result, expectedValue)
 				}
-				atomic.AddUint32(&totalCommandCount, 1)
+
+				avgLatency = (time.Since(start) + avgLatency*time.Duration(totalCommandCount)) / time.Duration(atomic.AddUint32(&totalCommandCount, 1))
 			}
 			wg.Done()
 		}(clientId)
 	}
 	wg.Wait()
 	throughPutPerSec := float64(totalCommandCount) / (float64(time.Since(startTime)) / float64(time.Second))
-	return throughPutPerSec
+	return throughPutPerSec, float64(avgLatency / time.Millisecond)
 }
 
-func testWriteOnly(numClients int, t *testing.B) float64 {
+func testWriteOnly(numClients int, t *testing.B) (float64, float64) {
 	var wg sync.WaitGroup
 	var totalCommandCount uint32 = 0
+	var avgLatency time.Duration = 0
+
 	wg.Add(numClients)
 	startTime := time.Now()
 	for clientId := 1; clientId <= numClients; clientId++ {
@@ -122,40 +126,29 @@ func testWriteOnly(numClients int, t *testing.B) float64 {
 				log.Fatalf("CreateSharedRegisterClient err: %v %d", err, clientId)
 			}
 
-			for start := time.Now(); time.Since(start) < time.Minute*3; {
+			for start := time.Now(); time.Since(start) < time.Second*10; {
 				randInt := generateRandomIntString()
 				key, value := "k"+randInt, "v"+randInt
 				err := client.Write(key, value)
 				if err != nil {
 					t.Errorf("Failed write: key=%s", key)
 				}
-				atomic.AddUint32(&totalCommandCount, 1)
+				avgLatency = (time.Since(start) + avgLatency*time.Duration(totalCommandCount)) / time.Duration(atomic.AddUint32(&totalCommandCount, 1))
+
 			}
 			wg.Done()
 		}(clientId)
 	}
 	wg.Wait()
 	throughPutPerSec := float64(totalCommandCount) / (float64(time.Since(startTime)) / float64(time.Second))
-	return throughPutPerSec
+	return throughPutPerSec, float64(avgLatency / time.Millisecond)
 }
 
-//func BenchmarkReadAndWrite(b *testing.B) {
-//	numClients := 1
-//	testReadAndWrite(numClients, b)
-//	log.Println("Finish Benchmark Read and Write")
-//}
-
-func BenchmarkReadAndWrite(b *testing.B) {
-	for numClients := 1; numClients <= 32; numClients *= 2 {
-		testReadAndWrite(numClients, b)
-		log.Printf("finish numClient=%d", numClients)
-	}
-	log.Println("Finish Benchmark Read and Write")
-}
-
-func testReadAndWrite(numClients int, t *testing.B) float64 {
+func testReadAndWrite(numClients int, t *testing.B) (float64, float64) {
 	var wg sync.WaitGroup
 	var totalCommandCount uint32 = 0
+	var avgLatency time.Duration = 0
+
 	wg.Add(numClients)
 	startTime := time.Now()
 	for clientId := 1; clientId <= numClients; clientId++ {
@@ -174,7 +167,7 @@ func testReadAndWrite(numClients int, t *testing.B) float64 {
 				log.Fatalf("CreateSharedRegisterClient err: %v %d", err, clientId)
 			}
 
-			for start := time.Now(); time.Since(start) < time.Minute*3; {
+			for start := time.Now(); time.Since(start) < time.Second*10; {
 				randInt := generateRandomIntString()
 				key, value := "k"+randInt, "v"+randInt
 				err := client.Write(key, value)
@@ -197,7 +190,7 @@ func testReadAndWrite(numClients int, t *testing.B) float64 {
 					fmt.Println(err)
 					os.Exit(1)
 				}
-				atomic.AddUint32(&totalCommandCount, 2)
+				avgLatency = (time.Since(start) + avgLatency*time.Duration(totalCommandCount)) / time.Duration(atomic.AddUint32(&totalCommandCount, 2))
 			}
 
 			wg.Done()
@@ -205,5 +198,19 @@ func testReadAndWrite(numClients int, t *testing.B) float64 {
 	}
 	wg.Wait()
 	throughPutPerSec := float64(totalCommandCount) / (float64(time.Since(startTime)) / float64(time.Second))
-	return throughPutPerSec
+	return throughPutPerSec, float64(avgLatency / time.Millisecond)
+}
+
+//func BenchmarkReadAndWrite(b *testing.B) {
+//	numClients := 1
+//	testReadAndWrite(numClients, b)
+//	log.Println("Finish Benchmark Read and Write")
+//}
+
+func BenchmarkReadAndWrite(b *testing.B) {
+	for numClients := 1; numClients <= 32; numClients *= 2 {
+		testReadAndWrite(numClients, b)
+		log.Printf("finish numClient=%d", numClients)
+	}
+	log.Println("Finish Benchmark Read and Write")
 }
