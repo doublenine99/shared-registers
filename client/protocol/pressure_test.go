@@ -139,9 +139,17 @@ func testWriteOnly(numClients int, t *testing.B) float64 {
 	return throughPutPerSec
 }
 
+//func BenchmarkReadAndWrite(b *testing.B) {
+//	numClients := 1
+//	testReadAndWrite(numClients, b)
+//	log.Println("Finish Benchmark Read and Write")
+//}
+
 func BenchmarkReadAndWrite(b *testing.B) {
-	numClients := 1
-	testReadAndWrite(numClients, b)
+	for numClients := 1; numClients <= 32; numClients *= 2 {
+		testReadAndWrite(numClients, b)
+		log.Printf("finish numClient=%d", numClients)
+	}
 	log.Println("Finish Benchmark Read and Write")
 }
 
