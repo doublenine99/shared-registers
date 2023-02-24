@@ -50,7 +50,7 @@ func TestInitKVStore(t *testing.T) {
 // * run the benchmark with verbose log
 // go test -run BenchmarkRunClient -v -bench=. &> out.log
 func BenchmarkRunClient(b *testing.B) {
-	_testMaxClientNum := 32
+	_testMaxClientNum := 64
 	//go util.PrintGoroutineNum(3 * time.Second)
 
 	dirName := "results" // store results in this dir
@@ -95,7 +95,9 @@ func testReadOnly(numClients int, t *testing.B) (float64, float64) {
 				log.Fatalf("CreateSharedRegisterClient err: %v %d", err, clientId)
 			}
 
+			var commandCount uint64 = 0
 			for start := time.Now(); time.Since(start) < time.Second*10; {
+				operationStart := time.Now()
 				randInt := generateRandomIntString()
 				key, expectedValue := "k"+randInt, "v"+randInt
 				result, err := client.Read(key)
@@ -103,7 +105,9 @@ func testReadOnly(numClients int, t *testing.B) (float64, float64) {
 					t.Errorf("Incorrect read: key=%s, actualValue=%s, expectedValue=%s", key, result, expectedValue)
 				}
 
-				avgLatency = (uint64(time.Since(start).Microseconds()) + avgLatency*uint64(totalCommandCount)) / uint64(atomic.AddUint32(&totalCommandCount, 1))
+				avgLatency = (uint64(time.Since(operationStart).Microseconds()) + avgLatency*commandCount) / (commandCount + 1)
+				commandCount++
+				atomic.AddUint32(&totalCommandCount, 1)
 			}
 			avgLatencyChannel <- avgLatency
 			wg.Done()
@@ -131,14 +135,18 @@ func testWriteOnly(numClients int, t *testing.B) (float64, float64) {
 				log.Fatalf("CreateSharedRegisterClient err: %v %d", err, clientId)
 			}
 
+			var commandCount uint64 = 0
 			for start := time.Now(); time.Since(start) < time.Second*10; {
+				operationStart := time.Now()
 				randInt := generateRandomIntString()
 				key, value := "k"+randInt, "v"+randInt
 				err := client.Write(key, value)
 				if err != nil {
 					t.Errorf("Failed write: key=%s", key)
 				}
-				avgLatency = (uint64(time.Since(start).Microseconds()) + avgLatency*uint64(totalCommandCount)) / uint64(atomic.AddUint32(&totalCommandCount, 1))
+				avgLatency = (uint64(time.Since(operationStart).Microseconds()) + avgLatency*commandCount) / (commandCount + 1)
+				commandCount++
+				atomic.AddUint32(&totalCommandCount, 1)
 			}
 			avgLatencyChannel <- avgLatency
 			wg.Done()
@@ -174,7 +182,9 @@ func testReadAndWrite(numClients int, t *testing.B) (float64, float64) {
 				log.Fatalf("CreateSharedRegisterClient err: %v %d", err, clientId)
 			}
 
+			var commandCount uint64 = 0
 			for start := time.Now(); time.Since(start) < time.Second*10; {
+				operationStart := time.Now()
 				randInt := generateRandomIntString()
 				key, value := "k"+randInt, "v"+randInt
 				err := client.Write(key, value)
@@ -197,7 +207,9 @@ func testReadAndWrite(numClients int, t *testing.B) (float64, float64) {
 					fmt.Println(err)
 					os.Exit(1)
 				}
-				avgLatency = (uint64(time.Since(start).Microseconds()) + avgLatency*uint64(totalCommandCount)) / uint64(atomic.AddUint32(&totalCommandCount, 2))
+				avgLatency = (uint64(time.Since(operationStart).Microseconds()) + avgLatency*commandCount) / (commandCount + 2)
+				commandCount += 2
+				atomic.AddUint32(&totalCommandCount, 2)
 			}
 			avgLatencyChannel <- avgLatency
 			wg.Done()
@@ -207,7 +219,7 @@ func testReadAndWrite(numClients int, t *testing.B) (float64, float64) {
 	throughPutPerSec := float64(totalCommandCount) / (float64(time.Since(startTime)) / float64(time.Second))
 	close(avgLatencyChannel)
 	avgLatency := averageChannel(avgLatencyChannel)
-	return throughPutPerSec, 2 * float64(avgLatency) / 1000 // convert to milliseconds
+	return throughPutPerSec, float64(avgLatency) / 1000 // convert to milliseconds
 }
 
 //func BenchmarkReadAndWrite(b *testing.B) {
