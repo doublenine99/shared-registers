@@ -84,10 +84,12 @@ func testReadOnly(numClients int, t *testing.B) (float64, float64) {
 	var wg sync.WaitGroup
 	wg.Add(numClients)
 	var totalCommandCount uint32 = 0
-	var avgLatency uint64 = 0
+	avgLatencyChannel := make(chan uint64)
+
 	startTime := time.Now()
 	for clientId := 1; clientId <= numClients; clientId++ {
 		go func(clientId int) {
+			var avgLatency uint64 = 0
 			client, err := CreateSharedRegisterClient("clientRead"+strconv.Itoa(clientId), _testServiceAddrs)
 			if err != nil {
 				log.Fatalf("CreateSharedRegisterClient err: %v %d", err, clientId)
@@ -103,24 +105,26 @@ func testReadOnly(numClients int, t *testing.B) (float64, float64) {
 
 				avgLatency = (uint64(time.Since(start).Microseconds()) + avgLatency*uint64(totalCommandCount)) / uint64(atomic.AddUint32(&totalCommandCount, 1))
 			}
+			avgLatencyChannel <- avgLatency
 			wg.Done()
 		}(clientId)
 	}
 	wg.Wait()
 	throughPutPerSec := float64(totalCommandCount) / (float64(time.Since(startTime)) / float64(time.Second))
+	avgLatency := averageChannel(avgLatencyChannel)
 	return throughPutPerSec, float64(avgLatency) / 1000 // convert to milliseconds
 }
 
 func testWriteOnly(numClients int, t *testing.B) (float64, float64) {
 	var wg sync.WaitGroup
 	var totalCommandCount uint32 = 0
-	var avgLatency uint64 = 0
+	avgLatencyChannel := make(chan uint64)
 
 	wg.Add(numClients)
 	startTime := time.Now()
 	for clientId := 1; clientId <= numClients; clientId++ {
 		go func(clientId int) {
-
+			var avgLatency uint64 = 0
 			client, err := CreateSharedRegisterClient("clientWrite"+strconv.Itoa(clientId), _testServiceAddrs)
 			if err != nil {
 				log.Fatalf("CreateSharedRegisterClient err: %v %d", err, clientId)
@@ -135,23 +139,25 @@ func testWriteOnly(numClients int, t *testing.B) (float64, float64) {
 				}
 				avgLatency = (uint64(time.Since(start).Microseconds()) + avgLatency*uint64(totalCommandCount)) / uint64(atomic.AddUint32(&totalCommandCount, 1))
 			}
+			avgLatencyChannel <- avgLatency
 			wg.Done()
 		}(clientId)
 	}
 	wg.Wait()
 	throughPutPerSec := float64(totalCommandCount) / (float64(time.Since(startTime)) / float64(time.Second))
+	avgLatency := averageChannel(avgLatencyChannel)
 	return throughPutPerSec, float64(avgLatency) / 1000 // convert to milliseconds
 }
 
 func testReadAndWrite(numClients int, t *testing.B) (float64, float64) {
 	var wg sync.WaitGroup
 	var totalCommandCount uint32 = 0
-	var avgLatency uint64 = 0
-
+	avgLatencyChannel := make(chan uint64)
 	wg.Add(numClients)
 	startTime := time.Now()
 	for clientId := 1; clientId <= numClients; clientId++ {
 		go func(clientId int) {
+			var avgLatency uint64 = 0
 			resultFile, err := os.Create("results/" + strconv.Itoa(numClients) + "clients_" + strconv.Itoa(clientId) + ".txt")
 			defer resultFile.Close()
 			if err != nil {
@@ -191,13 +197,14 @@ func testReadAndWrite(numClients int, t *testing.B) (float64, float64) {
 				}
 				avgLatency = (uint64(time.Since(start).Microseconds()) + avgLatency*uint64(totalCommandCount)) / uint64(atomic.AddUint32(&totalCommandCount, 2))
 			}
-
+			avgLatencyChannel <- avgLatency
 			wg.Done()
 		}(clientId)
 	}
 	wg.Wait()
 	throughPutPerSec := float64(totalCommandCount) / (float64(time.Since(startTime)) / float64(time.Second))
-	return throughPutPerSec, float64(avgLatency) / 1000 // convert to milliseconds
+	avgLatency := averageChannel(avgLatencyChannel)
+	return throughPutPerSec, 2 * float64(avgLatency) / 1000 // convert to milliseconds
 }
 
 //func BenchmarkReadAndWrite(b *testing.B) {
@@ -212,4 +219,20 @@ func BenchmarkReadAndWrite(b *testing.B) {
 		log.Printf("finish numClient=%d", numClients)
 	}
 	log.Println("Finish Benchmark Read and Write")
+}
+
+func averageChannel(c chan uint64) uint64 {
+	var sum uint64
+	var count uint64 = 0
+
+	for value := range c {
+		sum += value
+		count++
+	}
+
+	if count == 0 {
+		return 0
+	}
+
+	return sum / count
 }
