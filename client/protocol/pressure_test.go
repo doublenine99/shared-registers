@@ -28,7 +28,7 @@ func initKVStore(initNum int) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	for i := 0; i < initNum; i++ {
+	for i := 0; i <= initNum; i++ {
 		err := setUpClient.Write("k"+strconv.Itoa(i), "v"+strconv.Itoa(i))
 		if err != nil {
 			log.Fatalf("failed to initialize the k-v store with %d k-v pairs.", initNum)
@@ -142,6 +142,7 @@ func testWriteOnly(numClients int, t *testing.B) float64 {
 func BenchmarkReadAndWrite(b *testing.B) {
 	numClients := 1
 	testReadAndWrite(numClients, b)
+	log.Println("Finish Benchmark Read and Write")
 }
 
 func testReadAndWrite(numClients int, t *testing.B) float64 {

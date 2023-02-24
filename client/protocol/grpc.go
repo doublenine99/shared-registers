@@ -46,7 +46,7 @@ func (g *grpcClient) SetPhase(req *proto.SetPhaseReq) error {
 	defer cancel()
 	_, err := g.c.SetPhase(ctx, req)
 	if err != nil {
-		log.Printf("%s SetPhase failed: %v", g.conn.Target(), err)
+		//log.Printf("%s SetPhase failed: %v", g.conn.Target(), err)
 		return err
 	}
 	if g.RespMockFail {
@@ -69,7 +69,7 @@ func (g *grpcClient) GetPhase(req *proto.GetPhaseReq) (*proto.GetPhaseRsp, error
 	defer cancel()
 	rsp, err := g.c.GetPhase(ctx, req)
 	if err != nil {
-		log.Printf("%s GetPhase failed: %v", g.conn.Target(), err)
+		//log.Printf("%s GetPhase failed: %v", g.conn.Target(), err)
 		return nil, err
 	}
 	if g.RespMockFail {
