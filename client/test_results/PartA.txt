@@ -1,21 +1,21 @@
-Read Only       numClient=1     totalThroughput=2283.841419
-Write Only      numClient=1     totalThroughput=2431.385167
-R And W         numClient=1     totalThroughput=2644.456343
-Read Only       numClient=2     totalThroughput=4267.181155
-Write Only      numClient=2     totalThroughput=4615.608260
-R And W         numClient=2     totalThroughput=4598.551025
-Read Only       numClient=4     totalThroughput=7636.846979
-Write Only      numClient=4     totalThroughput=7788.057339
-R And W         numClient=4     totalThroughput=7956.482669
-Read Only       numClient=8     totalThroughput=12356.683003
-Write Only      numClient=8     totalThroughput=12673.255711
-R And W         numClient=8     totalThroughput=12962.046696
-Read Only       numClient=16    totalThroughput=15111.569659
-Write Only      numClient=16    totalThroughput=15413.163513
-R And W         numClient=16    totalThroughput=15845.275053
-Read Only       numClient=32    totalThroughput=17850.611682
-Write Only      numClient=32    totalThroughput=18114.727624
-R And W         numClient=32    totalThroughput=18617.480396
-Read Only       numClient=64    totalThroughput=19280.126743
-Write Only      numClient=64    totalThroughput=19653.906498
-R And W         numClient=64    totalThroughput=19976.284277
+Read Only       numClient=1     totalThroughput=2695.750738 averageLatency=0.281000
+Write Only      numClient=1     totalThroughput=2783.934523 averageLatency=0.279000
+R And W         numClient=1     totalThroughput=2844.779713 averageLatency=0.284000
+Read Only       numClient=2     totalThroughput=5149.824484 averageLatency=0.294000
+Write Only      numClient=2     totalThroughput=4963.687297 averageLatency=0.294000
+R And W         numClient=2     totalThroughput=5273.270717 averageLatency=0.303000
+Read Only       numClient=4     totalThroughput=8603.926645 averageLatency=0.330000
+Write Only      numClient=4     totalThroughput=8925.965404 averageLatency=0.332000
+R And W         numClient=4     totalThroughput=8607.842349 averageLatency=0.346000
+Read Only       numClient=8     totalThroughput=13538.580378 averageLatency=0.364000
+Write Only      numClient=8     totalThroughput=13512.883525 averageLatency=0.366000
+R And W         numClient=8     totalThroughput=14299.661000 averageLatency=0.383000
+Read Only       numClient=16    totalThroughput=16543.402317 averageLatency=0.482000
+Write Only      numClient=16    totalThroughput=17385.872194 averageLatency=0.474000
+R And W         numClient=16    totalThroughput=16781.326182 averageLatency=0.542000
+Read Only       numClient=32    totalThroughput=18196.523204 averageLatency=0.861000
+Write Only      numClient=32    totalThroughput=18777.972245 averageLatency=0.842000
+R And W         numClient=32    totalThroughput=19408.268165 averageLatency=1.039000
+Read Only       numClient=64    totalThroughput=20734.638325 averageLatency=2.217000
+Write Only      numClient=64    totalThroughput=17317.785223 averageLatency=3.005000
+R And W         numClient=64    totalThroughput=17404.958970 averageLatency=3.336000
