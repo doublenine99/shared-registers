@@ -111,6 +111,7 @@ func testReadOnly(numClients int, t *testing.B) (float64, float64) {
 	}
 	wg.Wait()
 	throughPutPerSec := float64(totalCommandCount) / (float64(time.Since(startTime)) / float64(time.Second))
+	close(avgLatencyChannel)
 	avgLatency := averageChannel(avgLatencyChannel)
 	return throughPutPerSec, float64(avgLatency) / 1000 // convert to milliseconds
 }
@@ -145,6 +146,7 @@ func testWriteOnly(numClients int, t *testing.B) (float64, float64) {
 	}
 	wg.Wait()
 	throughPutPerSec := float64(totalCommandCount) / (float64(time.Since(startTime)) / float64(time.Second))
+	close(avgLatencyChannel)
 	avgLatency := averageChannel(avgLatencyChannel)
 	return throughPutPerSec, float64(avgLatency) / 1000 // convert to milliseconds
 }
@@ -203,6 +205,7 @@ func testReadAndWrite(numClients int, t *testing.B) (float64, float64) {
 	}
 	wg.Wait()
 	throughPutPerSec := float64(totalCommandCount) / (float64(time.Since(startTime)) / float64(time.Second))
+	close(avgLatencyChannel)
 	avgLatency := averageChannel(avgLatencyChannel)
 	return throughPutPerSec, 2 * float64(avgLatency) / 1000 // convert to milliseconds
 }
