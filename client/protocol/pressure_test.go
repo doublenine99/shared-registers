@@ -168,7 +168,11 @@ func testReadAndWrite(numClients int, t *testing.B, writeResult bool) (uint32, f
 	for clientId := 1; clientId <= numClients; clientId++ {
 		go func(clientId int) {
 			var avgLatency uint64 = 0
-			resultFile, err := os.Create("results/" + strconv.Itoa(numClients) + "clients_" + strconv.Itoa(clientId) + ".txt")
+			outputFile := os.DevNull
+			if writeResult {
+				outputFile = "results/" + strconv.Itoa(numClients) + "clients_" + strconv.Itoa(clientId) + ".txt"
+			}
+			resultFile, err := os.Create(outputFile)
 			defer resultFile.Close()
 			if err != nil {
 				fmt.Println(err)
