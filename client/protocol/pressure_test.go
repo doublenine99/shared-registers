@@ -42,7 +42,7 @@ func initKVStore(initNum int) {
 }
 
 func TestInitKVStore(t *testing.T) {
-	initKVStore(10)
+	initKVStore(100000)
 }
 
 // * detect racing and generating profile for debugging purpose
@@ -92,7 +92,7 @@ func testReadOnly(numClients int, t *testing.B) float64 {
 				log.Fatalf("CreateSharedRegisterClient err: %v %d", err, clientId)
 			}
 
-			for start := time.Now(); time.Since(start) < time.Second*10; {
+			for start := time.Now(); time.Since(start) < time.Minute*3; {
 				randInt := generateRandomIntString()
 				key, expectedValue := "k"+randInt, "v"+randInt
 				result, err := client.Read(key)
@@ -122,7 +122,7 @@ func testWriteOnly(numClients int, t *testing.B) float64 {
 				log.Fatalf("CreateSharedRegisterClient err: %v %d", err, clientId)
 			}
 
-			for start := time.Now(); time.Since(start) < time.Second*10; {
+			for start := time.Now(); time.Since(start) < time.Minute*3; {
 				randInt := generateRandomIntString()
 				key, value := "k"+randInt, "v"+randInt
 				err := client.Write(key, value)
@@ -137,6 +137,11 @@ func testWriteOnly(numClients int, t *testing.B) float64 {
 	wg.Wait()
 	throughPutPerSec := float64(totalCommandCount) / (float64(time.Since(startTime)) / float64(time.Second))
 	return throughPutPerSec
+}
+
+func BenchmarkReadAndWrite(b *testing.B) {
+	numClients := 1
+	testReadAndWrite(numClients, b)
 }
 
 func testReadAndWrite(numClients int, t *testing.B) float64 {
@@ -160,7 +165,7 @@ func testReadAndWrite(numClients int, t *testing.B) float64 {
 				log.Fatalf("CreateSharedRegisterClient err: %v %d", err, clientId)
 			}
 
-			for start := time.Now(); time.Since(start) < time.Second*10; {
+			for start := time.Now(); time.Since(start) < time.Minute*3; {
 				randInt := generateRandomIntString()
 				key, value := "k"+randInt, "v"+randInt
 				err := client.Write(key, value)

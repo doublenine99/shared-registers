@@ -1,0 +1,18 @@
+Read Only       numClient=1     totalThroughput=2283.841419
+Write Only      numClient=1     totalThroughput=2431.385167
+R And W         numClient=1     totalThroughput=2644.456343
+Read Only       numClient=2     totalThroughput=4267.181155
+Write Only      numClient=2     totalThroughput=4615.608260
+R And W         numClient=2     totalThroughput=4598.551025
+Read Only       numClient=4     totalThroughput=7636.846979
+Write Only      numClient=4     totalThroughput=7788.057339
+R And W         numClient=4     totalThroughput=7956.482669
+Read Only       numClient=8     totalThroughput=12356.683003
+Write Only      numClient=8     totalThroughput=12673.255711
+R And W         numClient=8     totalThroughput=12962.046696
+Read Only       numClient=16    totalThroughput=15111.569659
+Write Only      numClient=16    totalThroughput=15413.163513
+R And W         numClient=16    totalThroughput=15845.275053
+Read Only       numClient=32    totalThroughput=17850.611682
+Write Only      numClient=32    totalThroughput=18114.727624
+R And W         numClient=32    totalThroughput=18617.480396

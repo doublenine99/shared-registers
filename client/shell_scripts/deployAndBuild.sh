@@ -4,10 +4,10 @@ do
   {
     serverName="amd${tmp}.utah.cloudlab.us"
 
-    ssh "borisli@${serverName}" "cd shared-registers; git reset --hard HEAD; git pull --no-rebase;\
+    ssh "borisli@${serverName}" "cd shared-registers/client; git reset --hard HEAD; git pull --no-rebase;\
       chmod +x shell_scripts/*;\
       source /etc/profile;\
-      cd client; make clean; make build;"
+      make clean; make build;"
   }&
 done
 wait
