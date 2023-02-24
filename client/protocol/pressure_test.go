@@ -75,7 +75,7 @@ func BenchmarkRunClient(b *testing.B) {
 		b.Logf("Read Only\t numClient=%d\t totalThroughput=%f averageLatency=%f\n", numClients, throughPutPerSec, avgLatency)
 		throughPutPerSec, avgLatency = testWriteOnly(numClients, b)
 		b.Logf("Write Only\t numClient=%d\t totalThroughput=%f averageLatency=%f\n", numClients, throughPutPerSec, avgLatency)
-		_, throughPutPerSec, avgLatency = testReadAndWrite(numClients, b)
+		_, throughPutPerSec, avgLatency = testReadAndWrite(numClients, b, false)
 		b.Logf("R And W\t numClient=%d\t totalThroughput=%f averageLatency=%f\n", numClients, throughPutPerSec, avgLatency)
 	}
 }
@@ -159,7 +159,7 @@ func testWriteOnly(numClients int, t *testing.B) (float64, float64) {
 	return throughPutPerSec, float64(avgLatency) / 1000 // convert to milliseconds
 }
 
-func testReadAndWrite(numClients int, t *testing.B) (uint32, float64, float64) {
+func testReadAndWrite(numClients int, t *testing.B, writeResult bool) (uint32, float64, float64) {
 	var wg sync.WaitGroup
 	var totalCommandCount uint32 = 0
 	avgLatencyChannel := make(chan uint64, numClients)
@@ -224,7 +224,7 @@ func testReadAndWrite(numClients int, t *testing.B) (uint32, float64, float64) {
 
 func BenchmarkWriteThenReadForDemo(b *testing.B) {
 	numClients := 10
-	totalCommandCount, throughPutPerSec, avgLatency := testReadAndWrite(numClients, b)
+	totalCommandCount, throughPutPerSec, avgLatency := testReadAndWrite(numClients, b, false)
 	b.Logf("numClient=%d\ttotalThroughput(ops/sec)=%f averageLatency(ms)=%f\n", numClients, throughPutPerSec, avgLatency)
 	b.Logf("Read: %d\tWrite:%d\n", totalCommandCount/2, totalCommandCount/2)
 	log.Println("Finish Demo Test")
@@ -232,7 +232,7 @@ func BenchmarkWriteThenReadForDemo(b *testing.B) {
 
 func BenchmarkReadAndWrite(b *testing.B) {
 	for numClients := 1; numClients <= 32; numClients *= 2 {
-		testReadAndWrite(numClients, b)
+		testReadAndWrite(numClients, b, true)
 		log.Printf("finish numClient=%d", numClients)
 	}
 	log.Println("Finish Benchmark Read and Write")
