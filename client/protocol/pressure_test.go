@@ -84,7 +84,7 @@ func testReadOnly(numClients int, t *testing.B) (float64, float64) {
 	var wg sync.WaitGroup
 	wg.Add(numClients)
 	var totalCommandCount uint32 = 0
-	var avgLatency time.Duration = 0
+	var avgLatency uint64 = 0
 	startTime := time.Now()
 	for clientId := 1; clientId <= numClients; clientId++ {
 		go func(clientId int) {
@@ -101,20 +101,20 @@ func testReadOnly(numClients int, t *testing.B) (float64, float64) {
 					t.Errorf("Incorrect read: key=%s, actualValue=%s, expectedValue=%s", key, result, expectedValue)
 				}
 
-				avgLatency = (time.Since(start) + avgLatency*time.Duration(totalCommandCount)) / time.Duration(atomic.AddUint32(&totalCommandCount, 1))
+				avgLatency = (uint64(time.Since(start).Microseconds()) + avgLatency*uint64(totalCommandCount)) / uint64(atomic.AddUint32(&totalCommandCount, 1))
 			}
 			wg.Done()
 		}(clientId)
 	}
 	wg.Wait()
 	throughPutPerSec := float64(totalCommandCount) / (float64(time.Since(startTime)) / float64(time.Second))
-	return throughPutPerSec, float64(avgLatency / time.Millisecond)
+	return throughPutPerSec, float64(avgLatency) / 1000 // convert to milliseconds
 }
 
 func testWriteOnly(numClients int, t *testing.B) (float64, float64) {
 	var wg sync.WaitGroup
 	var totalCommandCount uint32 = 0
-	var avgLatency time.Duration = 0
+	var avgLatency uint64 = 0
 
 	wg.Add(numClients)
 	startTime := time.Now()
@@ -133,21 +133,20 @@ func testWriteOnly(numClients int, t *testing.B) (float64, float64) {
 				if err != nil {
 					t.Errorf("Failed write: key=%s", key)
 				}
-				avgLatency = (time.Since(start) + avgLatency*time.Duration(totalCommandCount)) / time.Duration(atomic.AddUint32(&totalCommandCount, 1))
-
+				avgLatency = (uint64(time.Since(start).Microseconds()) + avgLatency*uint64(totalCommandCount)) / uint64(atomic.AddUint32(&totalCommandCount, 1))
 			}
 			wg.Done()
 		}(clientId)
 	}
 	wg.Wait()
 	throughPutPerSec := float64(totalCommandCount) / (float64(time.Since(startTime)) / float64(time.Second))
-	return throughPutPerSec, float64(avgLatency / time.Millisecond)
+	return throughPutPerSec, float64(avgLatency) / 1000 // convert to milliseconds
 }
 
 func testReadAndWrite(numClients int, t *testing.B) (float64, float64) {
 	var wg sync.WaitGroup
 	var totalCommandCount uint32 = 0
-	var avgLatency time.Duration = 0
+	var avgLatency uint64 = 0
 
 	wg.Add(numClients)
 	startTime := time.Now()
@@ -190,7 +189,7 @@ func testReadAndWrite(numClients int, t *testing.B) (float64, float64) {
 					fmt.Println(err)
 					os.Exit(1)
 				}
-				avgLatency = (time.Since(start) + avgLatency*time.Duration(totalCommandCount)) / time.Duration(atomic.AddUint32(&totalCommandCount, 2))
+				avgLatency = (uint64(time.Since(start).Microseconds()) + avgLatency*uint64(totalCommandCount)) / uint64(atomic.AddUint32(&totalCommandCount, 2))
 			}
 
 			wg.Done()
@@ -198,7 +197,7 @@ func testReadAndWrite(numClients int, t *testing.B) (float64, float64) {
 	}
 	wg.Wait()
 	throughPutPerSec := float64(totalCommandCount) / (float64(time.Since(startTime)) / float64(time.Second))
-	return throughPutPerSec, float64(avgLatency / time.Millisecond)
+	return throughPutPerSec, float64(avgLatency) / 1000 // convert to milliseconds
 }
 
 //func BenchmarkReadAndWrite(b *testing.B) {
