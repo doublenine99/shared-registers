@@ -84,7 +84,7 @@ func testReadOnly(numClients int, t *testing.B) (float64, float64) {
 	var wg sync.WaitGroup
 	wg.Add(numClients)
 	var totalCommandCount uint32 = 0
-	avgLatencyChannel := make(chan uint64)
+	avgLatencyChannel := make(chan uint64, numClients)
 
 	startTime := time.Now()
 	for clientId := 1; clientId <= numClients; clientId++ {
@@ -119,7 +119,7 @@ func testReadOnly(numClients int, t *testing.B) (float64, float64) {
 func testWriteOnly(numClients int, t *testing.B) (float64, float64) {
 	var wg sync.WaitGroup
 	var totalCommandCount uint32 = 0
-	avgLatencyChannel := make(chan uint64)
+	avgLatencyChannel := make(chan uint64, numClients)
 
 	wg.Add(numClients)
 	startTime := time.Now()
@@ -154,7 +154,7 @@ func testWriteOnly(numClients int, t *testing.B) (float64, float64) {
 func testReadAndWrite(numClients int, t *testing.B) (float64, float64) {
 	var wg sync.WaitGroup
 	var totalCommandCount uint32 = 0
-	avgLatencyChannel := make(chan uint64)
+	avgLatencyChannel := make(chan uint64, numClients)
 	wg.Add(numClients)
 	startTime := time.Now()
 	for clientId := 1; clientId <= numClients; clientId++ {
