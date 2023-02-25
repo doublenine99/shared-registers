@@ -7,7 +7,7 @@ do
     ssh "borisli@${serverName}" "cd shared-registers/server;\
       chmod +x ../shell_scripts/*;\
       source /etc/profile;\
-      make clean; make build; nohup make run > /dev/null 2>&1 &"
+      make clean; make build; make run"
   }&
 done
 wait

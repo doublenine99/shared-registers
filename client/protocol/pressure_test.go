@@ -231,7 +231,7 @@ func BenchmarkWriteThenReadForDemo(b *testing.B) {
 	totalCommandCount, throughPutPerSec, avgLatency := testReadAndWrite(numClients, b, false)
 	b.Logf("numClient=%d\ttotalThroughput(ops/sec)=%f averageLatency(ms)=%f\n", numClients, throughPutPerSec, avgLatency)
 	b.Logf("Read: %d\tWrite:%d\n", totalCommandCount/2, totalCommandCount/2)
-	log.Println("Finish Demo Test")
+	b.Logf("Finish Demo Test")
 }
 
 func BenchmarkReadAndWrite(b *testing.B) {
