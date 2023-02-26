@@ -1,8 +1,12 @@
 package protocol
 
 import (
+	"log"
 	"strconv"
+	"sync"
+	"sync/atomic"
 	"testing"
+	"time"
 )
 
 var (
@@ -264,4 +268,55 @@ func TestWriteFailsAfterMajorityFailure(t *testing.T) {
 			t.Errorf("TEST FAILED: Expected key/value to not exist: %s", val)
 		}
 	}
+}
+
+// multiple clients test
+
+func TestMultipleClientsWithFailures(t *testing.T) {
+	var numClients = 10
+	var wg sync.WaitGroup
+	var totalCommandCount uint32 = 0
+	avgLatencyChannel := make(chan uint64, numClients)
+	wg.Add(numClients)
+	for clientId := 1; clientId <= numClients; clientId++ {
+		go func(clientId int) {
+			var avgLatency uint64 = 0
+
+			client, err := CreateSharedRegisterClient("clientReadAndWrite"+strconv.Itoa(clientId), _testServiceAddrs)
+			if err != nil {
+				log.Fatalf("CreateSharedRegisterClient err: %v %d", err, clientId)
+			}
+
+			var commandCount uint64 = 0
+			for start := time.Now(); time.Since(start) < time.Second*10; {
+				operationStart := time.Now()
+				randInt := generateRandomIntString()
+				key, value := "k"+randInt, "v"+randInt
+				err := client.Write(key, value)
+				if err != nil {
+					t.Errorf("Failed write: key=%s", key)
+				}
+
+				// simulate less than quorumSize replicas fail to process request between Read GetPhase and SetPhase of client number 5
+				if clientId == 5 {
+					for i := 0; i < client.quorumSize-1; i++ {
+						client.replicaConns[i].GetPhaseMockFail = false
+						client.replicaConns[i].SetPhaseMockFail = true
+					}
+				}
+
+				result, err := client.Read(key)
+				if err == nil && result != value {
+					t.Errorf("Incorrect read: key=%s, actualValue=%s, expectedValue=%s", key, result, value)
+				}
+
+				avgLatency = (uint64(time.Since(operationStart).Microseconds()) + avgLatency*commandCount) / (commandCount + 2)
+				commandCount += 2
+				atomic.AddUint32(&totalCommandCount, 2)
+			}
+			avgLatencyChannel <- avgLatency
+			wg.Done()
+		}(clientId)
+	}
+	wg.Wait()
 }
