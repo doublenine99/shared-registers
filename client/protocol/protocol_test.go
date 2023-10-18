@@ -104,6 +104,7 @@ func TestSelect(t *testing.T) {
 	}
 }
 
+// go test -race -run TestRace ./...
 func TestRace(t *testing.T) {
 	m := make(map[string]string)
 	go func() {
