@@ -6,6 +6,8 @@ replace shared-registers/common => ../../shared-registers/common
 
 require shared-registers/common v1.0.0
 
+require go.uber.org/goleak v1.2.1
+
 require (
 	github.com/golang/protobuf v1.5.2 // indirect
 	golang.org/x/net v0.5.0 // indirect
